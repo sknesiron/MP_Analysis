@@ -74,7 +74,7 @@ def generate_bounds(peak_estimate):
         bound_ar[1,i,:]=np.array((peak_estimate[1,i]-peak_estimate[2,i],peak_estimate[1,i]+peak_estimate[2,i]))
         bound_ar[2,i,:]=np.array((0,peak_estimate[2,i]))
     
-    return bound_ar.reshape(-1,bound_ar.shape[2])
+    return bound_ar.reshape(-1,bound_ar.shape[2],order="F")
 
 def multi_gaussian(x, *params):
     n_gaussians = len(params) // 3
@@ -85,6 +85,40 @@ def multi_gaussian(x, *params):
         sigma = params[3 * i + 2]
         y += gauss(x,A,mu,sigma)
     return y
+
+def multi_gaussian_with_baseline(x, *params):
+    """
+    Computes a sum of Gaussian functions with a linear baseline correction.
+    
+    Parameters:
+        x : array-like
+            The independent variable.
+        *params : float
+            Parameters for the Gaussians and baseline:
+            - For each Gaussian: amplitude (A), mean (mu), and standard deviation (sigma).
+            - For baseline: slope (m) and intercept (c).
+    
+    Returns:
+        y : array-like
+            The computed values of the multi-Gaussian function with baseline correction.
+    """
+    n_gaussians = (len(params) - 2) // 3  # Last two parameters are for baseline
+    y = np.zeros_like(x)
+    
+    # Add Gaussians
+    for i in range(n_gaussians):
+        A = params[3 * i]
+        mu = params[3 * i + 1]
+        sigma = params[3 * i + 2]
+        y += gauss(x, A, mu, sigma)
+    
+    # Add baseline correction
+    m = params[-2]  # Slope
+    c = params[-1]  # Intercept
+    y += m * x + c
+    
+    return y
+
 
 from scipy.integrate import quad
 
